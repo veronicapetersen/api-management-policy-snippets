@@ -1,0 +1,78 @@
+﻿<!-- The policy defined in this file demonstrates how to modify the example error handling policy provided by Microsoft
+     to accommodate for validate-jwt expression errors -->
+<!-- Error Handling Example: https://docs.microsoft.com/en-us/azure/api-management/api-management-error-handling-policies#example -->
+<!-- Validate JWT Example: https://docs.microsoft.com/en-us/azure/api-management/api-management-access-restriction-policies#ValidateJWT -->
+<!-- Example error that may be shown in the logs:
+    [{"message":"Expression value is invalid.","expression":"context.LastError.Message",
+    "value":"IDX10511: Signature validation failed. Keys tried: 'Microsoft.IdentityModel.Tokens.X509SecurityKey,
+    KeyId: abc', InternalId: 'abc'. , KeyId: abc\r\n'. \nkid: abc'.  \nExceptions caught:\n ''.\ntoken: 'hidden'.",
+    "details":"Specified value has invalid CRLF characters."},
+    "Expression value is invalid. Specified value has invalid CRLF characters."] -->
+<!-- Copy the following snippet into the on-error section. -->
+
+<on-error>
+    <choose>
+        <when condition="@(context.LastError.Source == "validate-jwt" && context.LastError.Reason == "TokenInvalidSignature")">
+            <return-response>
+                <set-status code="401" reason="TokenInvalidSignature" />
+                <set-header name="ErrorSource" exists-action="override">
+                    <value>@(context.LastError.Source)</value>
+                </set-header>
+                <set-header name="ErrorReason" exists-action="override">
+                    <value>@(context.LastError.Reason)</value>
+                </set-header>
+                <set-header name="ErrorMessage" exists-action="override">
+                    <value>Unauthorized. Access token is missing or invalid.</value>
+                </set-header>
+                <set-header name="ErrorScope" exists-action="override">
+                    <value>@(context.LastError.Scope)</value>
+                </set-header>
+                <set-header name="ErrorSection" exists-action="override">
+                    <value>@(context.LastError.Section)</value>
+                </set-header>
+                <set-header name="ErrorPath" exists-action="override">
+                    <value>@(context.LastError.Path)</value>
+                </set-header>
+                <set-header name="ErrorPolicyId" exists-action="override">
+                    <value>@(context.LastError.PolicyId)</value>
+                </set-header>
+                <set-header name="ErrorStatusCode" exists-action="override">
+                    <value>@(context.Response.StatusCode.ToString())</value>
+                </set-header>
+                <set-body>@{
+                    return new JObject(
+                        new JProperty("status", "HTTP 401"),
+                        new JProperty("message", "Unauthorized. Access token is missing or invalid."),
+                        new JProperty("text", context.Response.StatusCode.ToString()),
+                        new JProperty("errorReason", context.LastError.Message.ToString())
+                    ).ToString();
+                }</set-body>
+            </return-response>
+        </when>
+        <otherwise />
+    </choose>
+    <set-header name="ErrorSource" exists-action="override">
+        <value>@(context.LastError.Source)</value>
+    </set-header>
+    <set-header name="ErrorReason" exists-action="override">
+        <value>@(context.LastError.Reason)</value>
+    </set-header>
+    <set-header name="ErrorMessage" exists-action="override">
+        <value>@(context.LastError.Message)</value>
+    </set-header>
+    <set-header name="ErrorScope" exists-action="override">
+        <value>@(context.LastError.Scope)</value>
+    </set-header>
+    <set-header name="ErrorSection" exists-action="override">
+        <value>@(context.LastError.Section)</value>
+    </set-header>
+    <set-header name="ErrorPath" exists-action="override">
+        <value>@(context.LastError.Path)</value>
+    </set-header>
+    <set-header name="ErrorPolicyId" exists-action="override">
+        <value>@(context.LastError.PolicyId)</value>
+    </set-header>
+    <set-header name="ErrorStatusCode" exists-action="override">
+        <value>@(context.Response.StatusCode.ToString())</value>
+    </set-header>
+</on-error>
